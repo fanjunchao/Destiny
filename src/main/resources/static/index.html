@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>demo</title>
+    <script src="js/jquery-3.2.1.js"></script>
+    <script type="text/javascript">
+        var currentPage = 0, size = 10, totalPage, totalElements, Sort = 'id', gender, id, ids = [];
+        //$.ajaxSetup({'contentType': 'application/json'});
+        function del(ids) {
+            if (ids.length == 0) {
+                alert("请先选择删除条目");
+                return;
+            }
+            if (confirm("确认删除吗？") == true) {
+                $.post('demo/del', {ids: ids}, function (msg) {
+                    alert(msg);
+                    ids.splice(0, ids.length);
+//                    findByJpa(0);
+                    findByMybatis(0);
+                })
+            }
+        }
+        function add() {
+            $('#add').html('姓名<input type="text" name="name1" value=""><br>生日<input type="text" name="birthday"><br>性别<input type="checkbox" id="male1">男 <input type="checkbox" id="female1">女<br>地址<input type="text" name="address1"><br>手机<input type="text" name="phone1"><br><input type="button" value="保存" onclick="save()"/><input type="button" value="编辑" onclick="update()"/>')
+        }
+        function save() {
+            if ($('#male1').prop('checked') == true) {
+                gender = 0;
+            }
+            else if ($('#female1').prop('checked') == true) {
+                gender = 1;
+            }
+            else {
+                gender = 2;
+            }
+            if ($('input[name="name1"]').val() == '' || $("input[name='birthday']").val() == '' ||
+                $("input[name='address1']").val() == '' || $("input[name='phone1']").val() == '') {
+                alert('请填写完整信息');
+                return;
+            }
+            $.ajax({
+                type: "post",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    id: id, name: $('input[name="name1"]').val(), birthday: $("input[name='birthday']").val(),
+                    gender: gender, address: $("input[name='address1']").val(), phone: $("input[name='phone1']").val()
+                }),
+                url: "demo/save",
+                success: function (msg) {
+                    alert(msg);
+//                    findByJpa(0);
+                    findByMybatis(0);
+                }
+            });
+            $('#add').empty();
+        }
+        function update() {
+            if ($('#male1').prop('checked') == true) {
+                gender = 0;
+            }
+            if ($('#female1').prop('checked') == true) {
+                gender = 1;
+            }
+            $.ajax({
+                type: "post",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    id: id, name: $('input[name="name1"]').val(), birthday: $("input[name='birthday']").val(),
+                    gender: gender, address: $("input[name='address1']").val(), phone: $("input[name='phone1']").val()
+                }),
+                url: "demo/update",
+                success: function (msg) {
+                    alert(msg);
+                    findByMybatis(0);
+                }
+            });
+            $('#add').empty();
+        }
+        function edit(id) {
+            add();
+            $.get('demo/edit/' + id, function (msg) {
+                $("input[name='name1']").val(msg.name).prop('readonly', true);
+                $("input[name='birthday']").val(msg.birthday);
+                if (msg.gender == '男') {
+                    $('#male1').prop('checked', true);
+                }
+                if (msg.gender == '女') {
+                    $('#female1').prop('checked', true);
+                }
+                $("input[name='address1']").val(msg.address);
+                $("input[name='phone1']").val(msg.phone)
+            })
+        }
+        function link() {
+            currentPage = $('#currentPage').val() - 1;
+            $('#currentPage').val('');
+            size = $('#item').val() == '' ? size : $('#item').val();
+            if (currentPage > Math.ceil(totalElements / size) - 1) {
+                currentPage = Math.ceil(totalElements / size) - 1;
+            }
+            if (currentPage < 0) {
+                currentPage = 0;
+            }
+            $('#first').prop('disabled', false);
+            $('#up').prop('disabled', false);
+            $('#down').prop('disabled', false);
+            $('#last').prop('disabled', false);
+            findByJpa(currentPage);
+//            findByMybatis(currentPage);
+        }
+        function pageNum(i, sort, direction) {
+            if (sort != null) {
+                Sort = sort;
+            }
+            $('#first').prop('disabled', false);
+            $('#up').prop('disabled', false);
+            $('#down').prop('disabled', false);
+            $('#last').prop('disabled', false);
+            size = $('#item').val() == '' ? size : $('#item').val();
+            if (i == 0) {
+                currentPage = 0;
+                $('#first').prop('disabled', true);
+                $('#up').prop('disabled', true);
+            }
+            if (i == -1) {
+                currentPage = currentPage < 0 ? 0 : currentPage + i;
+                if (currentPage == 0) {
+                    $('#first').prop('disabled', true);
+                    $('#up').prop('disabled', true);
+                }
+            }
+            if (i == 1) {
+                currentPage = currentPage > Math.ceil(totalElements / size) - 1 ? Math.ceil(totalElements / size) - 1 : currentPage + i;
+                if (currentPage == ((Math.ceil(totalElements / size)) - 1)) {
+                    $('#down').prop('disabled', true);
+                    $('#last').prop('disabled', true);
+                }
+            }
+            if (i == 2) {
+                currentPage = Math.ceil(totalElements / size) - 1;
+                $('#down').prop('disabled', true);
+                $('#last').prop('disabled', true);
+            }
+            findByJpa(currentPage, direction);
+//            findByMybatis(currentPage, direction);
+        }
+        function findByJpa(pageNum, direction) {
+            if ($('#male').prop('checked') == true) {
+                gender = 0;
+            }
+            if ($('#female').prop('checked') == true) {
+                gender = 1;
+            }
+            if ($('#male').prop('checked') == false && $('#female').prop('checked') == false) {
+                gender = '';
+            }
+            if ($('#male').prop('checked') == true && $('#female').prop('checked') == true) {
+                gender = '';
+            }
+            size = $('#item').val() == '' ? size : $('#item').val();
+            $.ajax({
+                type: "post",
+                dataType: "json",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    name: $("input[name='name']").val(),
+                    start: $("input[name='start']").val(),
+                    end: $("input[name='end']").val(),
+                    gender: gender,
+                    address: $("input[name='address']").val(),
+                    phone: $("input[name='phone']").val(),
+                    pageNumber: pageNum,
+                    size: size,
+                    sort: Sort,
+                    direction: direction
+                }),
+                url: "demo/findByJpa",
+                success: function (result) {
+                    $("tbody").empty();
+                    var msg = result.content;
+                    totalPage = result.totalPages;
+                    totalElements = result.totalElements;
+                    if (pageNum == 0) {
+                        if (msg.length < 10) {
+                            $('#first').prop('disabled', true);
+                            $('#up').prop('disabled', true);
+                            $('#down').prop('disabled', true);
+                            $('#last').prop('disabled', true);
+                        }
+                        else {
+                            $('#first').prop('disabled', true);
+                            $('#up').prop('disabled', true);
+                            $('#down').prop('disabled', false);
+                            $('#last').prop('disabled', false);
+                            currentPage = 0;
+                        }
+                    }
+                    for (var i = 0; i < msg.length; i++) {
+                        var $str = $('<tr><td class="ID" style="display:none;">' + msg[i].id + '</td><td>' + msg[i].name +
+                            '</td><td>' + msg[i].birthday + '</td><td>' + msg[i].gender + '</td><td>' + msg[i].address +
+                            '</td><td>' + msg[i].phone + '</td><td ><span class="isEdit">Edit</span>&nbsp;<input class="isDel" type="checkbox">Delete</input></td></tr>');
+                        $str.data('row', msg[i]);
+                        $str.click(function (e) {
+                            id = $(this).data('row').id;
+                            var target = e.target;
+                            if (target.tagName == 'SPAN' && target.className == 'isEdit') {
+                                edit(id);
+                            }
+                            if (target.className == 'isDel') {
+                                if ($(target).prop('checked') == true) {
+                                    ids.push(id);
+                                    console.log(ids);
+                                }
+                                else {
+                                    ids.splice(ids.indexOf(id), 1);
+                                    console.log(ids);
+                                }
+                            }
+                        })
+                        $("tbody").append($str);
+                    }
+                    $('#page').text('当前第' + (result.number + 1) + '页/共' + totalPage + '页');
+                }
+            });
+        }
+        function findByMybatis(pageNum, direction) {
+            if ($('#male').prop('checked') == true) {
+                gender = 0;
+            }
+            if ($('#female').prop('checked') == true) {
+                gender = 1;
+            }
+            if ($('#male').prop('checked') == false && $('#female').prop('checked') == false) {
+                gender = '';
+            }
+            if ($('#male').prop('checked') == true && $('#female').prop('checked') == true) {
+                gender = '';
+            }
+            size = $('#item').val() == '' ? size : $('#item').val();
+            $.ajax({
+                type: "post",
+                dataType: "json",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    name: $("input[name='name']").val(),
+                    start: $("input[name='start']").val(),
+                    end: $("input[name='end']").val(),
+                    gender: gender,
+                    address: $("input[name='address']").val(),
+                    phone: $("input[name='phone']").val(),
+                    pageNumber: pageNum,
+                    size: size,
+                    sort: Sort,
+                    direction: direction
+                }),
+                url: "demo/findByMybatis",
+                success: function (result) {
+                    var msg = result.list;
+                    $("tbody").empty();
+                    totalElements = result.totalElements;
+                    totalPage = result.totalPage;
+                    if (pageNum == 0) {
+                        if (msg.length < 10) {
+                            $('#first').prop('disabled', true);
+                            $('#up').prop('disabled', true);
+                            $('#down').prop('disabled', true);
+                            $('#last').prop('disabled', true);
+                        }
+                        else {
+                            $('#first').prop('disabled', true);
+                            $('#up').prop('disabled', true);
+                            $('#down').prop('disabled', false);
+                            $('#last').prop('disabled', false);
+                            currentPage = 0;
+                        }
+                    }
+                    for (var i in msg) {
+                        var $str = $('<tr><td class="ID" style="display:none;">' + msg[i].id + '</td><td>' + msg[i].name + '</td><td>'
+                            + msg[i].birthday + '</td><td>' + msg[i].gender + '</td><td>' + msg[i].address + '</td><td>' + msg[i].phone +
+                            '</td><td ><span class="isEdit">Edit</span>&nbsp;<input class="isDel" type="checkbox">Delete</input></td></tr>');
+                        $str.data('row', msg[i]);
+                        $str.click(function (e) {
+                            id = $(this).data('row').id;
+                            var target = e.target;
+                            if (target.tagName == 'SPAN' && target.className == 'isEdit') {
+                                edit(id);
+                            }
+                            if (target.className == 'isDel') {
+                                if ($(target).prop('checked') == true) {
+                                    ids.push(id);
+                                    console.log(ids);
+                                }
+                                else {
+                                    ids.splice(ids.indexOf(id), 1);
+                                    console.log(ids);
+                                }
+                            }
+                        })
+                        $("tbody").append($str);
+                    }
+                    $('#page').text('当前第' + (currentPage + 1) + '页/共' + totalPage + '页');
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+<table id="isData" border="1" cellpadding="0" cellspacing="0">
+    <thead>
+    <tr>
+        <td><span style="color: red" onclick="pageNum(0,'name')">↑</span>用户名
+            <span style="color: red" onclick="pageNum(0,'name','asc')">↓</span>
+        </td>
+        <td><span style="color: red" onclick="pageNum(0,'birthday')">↑</span>出生年月
+            <span style="color: red" onclick="pageNum(0,'birthday','asc')">↓</span>
+        </td>
+        <td><span style="color: red" onclick="pageNum(0,'gender')">↑</span>性别
+            <span style="color: red" onclick="pageNum(0,'gender','asc')">↓</span>
+        </td>
+        <td><span style="color: red" onclick="pageNum(0,'address')">↑</span>家庭住址
+            <span style="color: red" onclick="pageNum(0,'address','asc')">↓</span>
+        </td>
+        <td><span style="color: red" onclick="pageNum(0,'phone')">↑</span>手机号码
+            <span style="color: red" onclick="pageNum(0,'phone','asc')">↓</span>
+        </td>
+        <td>operate</td>
+    </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+    <tr>
+        <td colspan="6">
+            <span id="page"></span>
+            <input type="button" id="first" value="首页" onclick="pageNum(0)"/>
+            <input type="button" id="up" value="上页" onclick="pageNum(-1)"/>
+            <input type="button" id="down" value="下页" onclick="pageNum(1)"/>
+            <input type="button" id="last" value="尾页" onclick="pageNum(2)"/>
+            每页显示<input type="text" id="item" size="1"/>条
+            <input type="text" id="currentPage" size="1" value="0"/>页
+            <input type="button" value="跳转" onclick="link()"/>
+        </td>
+    </tr>
+    </tfoot>
+</table>
+姓名<input type="text" name="name" value=""><br>
+生日<input type="text" name="start">—<input type="text" name="end"><br>
+性别<input type="checkbox" id="male">男
+<input type="checkbox" id="female">女<br>
+地址<input type="text" name="address"><br>
+手机<input type="text" name="phone"><br>
+<input type="button" value="JPA查询" onclick="findByJpa(0)"/>
+<input type="button" value="Mybatis查询" onclick="findByMybatis(0)"/>
+<input type="button" value="添加" onclick="add()"/>
+<input type="button" value="删除" onclick="del(ids)"/><br>
+<div id="add"></div>
+</body>
+</html>

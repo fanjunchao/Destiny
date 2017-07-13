@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.dao.UserDao">
+
+    <resultMap id="BaseResultMap" type="com.example.domain.User">
+        <result column="ID" property="id"/>
+        <result column="NAME" property="name"/>
+        <result column="BIRTHDAY" property="birthday"/>
+        <result column="GENDER" property="gender"/>
+        <result column="ADDRESS" property="address"/>
+        <result column="PHONE" property="phone"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        ID, NAME, BIRTHDAY, GENDER, ADDRESS, PHONE
+    </sql>
+
+    <select id="findByCondition" resultMap="BaseResultMap" parameterType="com.example.dto.PageAndSortDTO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM user
+        <where>
+            <if test="name != ''">
+                NAME LIKE CONCAT('%',#{name},'%')
+            </if>
+            <if test="start != ''">
+                AND BIRTHDAY BETWEEN #{start}
+            </if>
+            <if test="end != ''">
+                AND #{end}
+            </if>
+            <if test="gender != ''">
+                AND GENDER = #{gender}
+            </if>
+            <if test="address != ''">
+                AND ADDRESS LIKE CONCAT('%',#{address},'%')
+            </if>
+            <if test="phone != ''">
+                AND PHONE LIKE CONCAT('%',#{phone},'%')
+            </if>
+        </where>
+        ORDER BY ${sort}
+        <if test="direction == null">
+            DESC
+        </if>
+        LIMIT #{pageNumber}, #{size}
+    </select>
+
+    <select id="count" resultType="Integer" parameterType="com.example.dto.PageAndSortDTO">
+        SELECT COUNT(*)
+        FROM user
+        <where>
+            <if test="name != ''">
+                NAME LIKE CONCAT('%',#{name},'%')
+            </if>
+            <if test="start != ''">
+                AND BIRTHDAY BETWEEN #{start}
+            </if>
+            <if test="end != ''">
+                AND #{end}
+            </if>
+            <if test="gender != ''">
+                AND GENDER = #{gender}
+            </if>
+            <if test="address != ''">
+                AND ADDRESS LIKE CONCAT('%',#{address},'%')
+            </if>
+            <if test="phone != ''">
+                AND PHONE LIKE CONCAT('%',#{phone},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap" parameterType="Long">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM user WHERE ID = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id" parameterType="com.example.dto.UserDTO">
+        INSERT INTO user(NAME, BIRTHDAY, GENDER, ADDRESS, PHONE)
+        VALUES (#{name}, #{birthday}, #{gender}, #{address}, #{phone})
+    </insert>
+
+    <update id="update" parameterType="com.example.dto.UserDTO">
+        UPDATE user SET NAME = #{name}, BIRTHDAY = #{birthday}, GENDER = #{gender}, ADDRESS = #{address}, PHONE = #{phone}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="Long">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+</mapper>
